@@ -1,0 +1,27 @@
+{
+  "name": "@api-components/api-model-generator",
+  "version": "0.1.0",
+  "description": "AMF model generator for API components",
+  "main": "index.js",
+  "scripts": {
+    "test": "exit 0"
+  },
+  "author": "",
+  "license": "Apache-2.0",
+  "authors": [
+    "Pawel Psztyc",
+    "The Advanced REST client authors <arc@mulesoft.com>"
+  ],
+  "dependencies": {
+    "amf-client-js": "1.8.0",
+    "jsonld": "^1.0.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/advanced-rest-client/api-model-generator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/advanced-rest-client/api-model-generator/issues",
+    "email": "arc@mulesoft.com"
+  }
+}
