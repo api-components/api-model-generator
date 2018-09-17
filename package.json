@@ -13,10 +13,7 @@
     "The Advanced REST client authors <arc@mulesoft.com>"
   ],
   "dependencies": {
-    "amf-client-js": "1.8.0"
-  },
-  "optionalDependencies": {
-    "jsonld": "^1.0.3"
+    "amf-client-js": "1.8.1"
   },
   "repository": {
     "type": "git",

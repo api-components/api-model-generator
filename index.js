@@ -1,23 +1,23 @@
 const amf = require('amf-client-js');
 const fs = require('fs');
-const jsonld = require('jsonld');
+// const jsonld = require('jsonld');
 
 amf.plugins.document.WebApi.register();
 amf.plugins.document.Vocabularies.register();
 amf.plugins.features.AMFValidation.register();
 
-const ldContext = {
-  'raml-http': 'http://a.ml/vocabularies/http#',
-  'shacl': 'http://www.w3.org/ns/shacl#',
-  'raml-shapes': 'http://a.ml/vocabularies/shapes#',
-  'security': 'http://a.ml/vocabularies/security#',
-  'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
-  'data': 'http://a.ml/vocabularies/data#',
-  'doc': 'http://a.ml/vocabularies/document#',
-  'schema-org': 'http://schema.org/',
-  'xsd': 'http://www.w3.org/2001/XMLSchema#',
-  'hydra': 'http://www.w3.org/ns/hydra/core#'
-};
+// const ldContext = {
+//   'raml-http': 'http://a.ml/vocabularies/http#',
+//   'shacl': 'http://www.w3.org/ns/shacl#',
+//   'raml-shapes': 'http://a.ml/vocabularies/shapes#',
+//   'security': 'http://a.ml/vocabularies/security#',
+//   'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
+//   'data': 'http://a.ml/vocabularies/data#',
+//   'doc': 'http://a.ml/vocabularies/document#',
+//   'schema-org': 'http://schema.org/',
+//   'xsd': 'http://www.w3.org/2001/XMLSchema#',
+//   'hydra': 'http://www.w3.org/ns/hydra/core#'
+// };
 
 /**
  * Generates json/ld file from parsed document.
@@ -53,31 +53,30 @@ function processFile(doc, file, type, destPath) {
     doc = r.resolve(doc, 'editing');
     return generator.generateString(doc);
   })
+  // .then((data) => {
+  //   fs.writeFileSync(destPath + dest, data, 'utf8');
+  //   return new Promise((resolve) => {
+  //     jsonld.compact(JSON.parse(data), ldContext, (err, compacted) => {
+  //       if (err) {
+  //         console.error(err);
+  //       } else {
+  //         const f = destPath + dest.replace('.json', '-compact.json');
+  //         fs.writeFileSync(f, JSON.stringify(compacted, null, 2), 'utf8');
+  //       }
+  //       resolve();
+  //     });
+  //   });
+  // });
   .then((data) => {
     fs.writeFileSync(destPath + dest, data, 'utf8');
-    return new Promise((resolve) => {
-      jsonld.compact(JSON.parse(data), ldContext, (err, compacted) => {
-        if (err) {
-          console.error(err);
-        } else {
-          const f = destPath + dest.replace('.json', '-compact.json');
-          fs.writeFileSync(f, JSON.stringify(compacted, null, 2), 'utf8');
-        }
-        resolve();
-      });
-    });
+    const opts = amf.render.RenderOptions().withSourceMaps.withCompactUris;
+    // withRawSourceMaps.
+    return generator.generateString(doc, opts);
+  })
+  .then((data) => {
+    const f = destPath + dest.replace('.json', '-compact.json');
+    fs.writeFileSync(f, data, 'utf8');
   });
-  // .then((data) => {
-  //   fs.writeFileSync('demo/' + dest, data, 'utf8');
-  //   // const options = amf.render.RenderOptions();
-  //   const opts = amf.render.RenderOptions().withSourceMaps.withCompactUris;
-  //   // withRawSourceMaps.
-  //   return generator.generateString(doc, opts);
-  // })
-  // .then((data) => {
-  //   const f = 'demo/' + dest.replace('.json', '-compact.json');
-  //   fs.writeFileSync(f, data, 'utf8');
-  // });
 }
 /**
  * Parses file and sends it to process.
