@@ -1,23 +1,10 @@
 const amf = require('amf-client-js');
-const fs = require('fs');
-// const jsonld = require('jsonld');
+const fs = require('fs-extra');
+const path = require('path');
 
 amf.plugins.document.WebApi.register();
 amf.plugins.document.Vocabularies.register();
 amf.plugins.features.AMFValidation.register();
-
-// const ldContext = {
-//   'raml-http': 'http://a.ml/vocabularies/http#',
-//   'shacl': 'http://www.w3.org/ns/shacl#',
-//   'raml-shapes': 'http://a.ml/vocabularies/shapes#',
-//   'security': 'http://a.ml/vocabularies/security#',
-//   'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
-//   'data': 'http://a.ml/vocabularies/data#',
-//   'doc': 'http://a.ml/vocabularies/document#',
-//   'schema-org': 'http://schema.org/',
-//   'xsd': 'http://www.w3.org/2001/XMLSchema#',
-//   'hydra': 'http://www.w3.org/ns/hydra/core#'
-// };
 
 /**
  * Generates json/ld file from parsed document.
@@ -43,39 +30,33 @@ function processFile(doc, file, type, destPath) {
   if (dest.indexOf('/') !== -1) {
     dest = dest.substr(dest.lastIndexOf('/'));
   }
+
   const generator = amf.Core.generator('AMF Graph', 'application/ld+json');
   return amf.AMF.validate(doc, validateProfile)
   .then((result) => {
-    console.log(result.toString());
+    if (!result.conforms) {
+      console.log(result.toString());
+    }
   })
   .then(() => {
     const r = amf.Core.resolver('RAML 1.0');
     doc = r.resolve(doc, 'editing');
     return generator.generateString(doc);
   })
-  // .then((data) => {
-  //   fs.writeFileSync(destPath + dest, data, 'utf8');
-  //   return new Promise((resolve) => {
-  //     jsonld.compact(JSON.parse(data), ldContext, (err, compacted) => {
-  //       if (err) {
-  //         console.error(err);
-  //       } else {
-  //         const f = destPath + dest.replace('.json', '-compact.json');
-  //         fs.writeFileSync(f, JSON.stringify(compacted, null, 2), 'utf8');
-  //       }
-  //       resolve();
-  //     });
-  //   });
-  // });
   .then((data) => {
-    fs.writeFileSync(destPath + dest, data, 'utf8');
+    const file = path.join(destPath, dest);
+    return fs.ensureFile(file)
+    .then(() => fs.writeFileSync(file, data, 'utf8'));
+  })
+  .then(() => {
     const opts = amf.render.RenderOptions().withSourceMaps.withCompactUris;
     // withRawSourceMaps.
     return generator.generateString(doc, opts);
   })
   .then((data) => {
-    const f = destPath + dest.replace('.json', '-compact.json');
-    fs.writeFileSync(f, data, 'utf8');
+    const compactDest = dest.replace('.json', '-compact.json');
+    const file = path.join(destPath, compactDest);
+    fs.writeFileSync(file, data, 'utf8');
   });
 }
 /**
@@ -84,7 +65,8 @@ function processFile(doc, file, type, destPath) {
  * @param {String} file File name in `demo` folder
  * @param {String} type Source file type
  * @param {Object} opts
- * - `srcDir` String
+ * - `src` String, default to 'demo/'
+ * - `dest` String, default to 'demo/'
  * @return {String}
  */
 function parseFile(file, type, opts) {
