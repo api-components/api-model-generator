@@ -63,7 +63,8 @@ function processFile(doc, file, type, destPath) {
  * Parses file and sends it to process.
  *
  * @param {String} file File name in `demo` folder
- * @param {String} type Source file type
+ * @param {String|Array<String>} type Source file type or an array where
+ * first element is API spec format and second is API file media type
  * @param {Object} opts
  * - `src` String, default to 'demo/'
  * - `dest` String, default to 'demo/'
@@ -78,7 +79,15 @@ function parseFile(file, type, opts) {
   if (dest[dest.length - 1] !== '/') {
     dest += '/';
   }
-  const parser = amf.Core.parser(type, 'application/yaml');
+  let mediaType;
+  if (type instanceof Array) {
+    mediaType = type[1];
+    type = type[0];
+  }
+  if (!mediaType) {
+    mediaType = 'application/yaml';
+  }
+  const parser = amf.Core.parser(type, mediaType);
   return parser.parseFileAsync(`file://${srcDir}${file}`)
   .then((doc) => processFile(doc, file, type, dest));
 }
