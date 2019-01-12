@@ -82,10 +82,29 @@ function parseFile(file, type, opts) {
   return parser.parseFileAsync(`file://${srcDir}${file}`)
   .then((doc) => processFile(doc, file, type, dest));
 }
+/**
+ * Reads `file` as JSON and creates a Map with definitions from the file.
+ * The keys are paths to the API file relative to `opts.src` and values is
+ * API type.
+ * @param {String} file Path to a file definition.
+ * @return {Map}
+ */
+function prepareFile(file) {
+  file = path.resolve(process.cwd(), file);
+  const data = require(file);
+  const files = new Map();
+  Object.keys(data).forEach((key) => {
+    files.set(key, data[key]);
+  });
+  return files;
+}
 
 module.exports = function(files, opts) {
   if (!opts) {
     opts = {};
+  }
+  if (typeof files === 'string') {
+    files = prepareFile(files);
   }
   return amf.Core.init().then(() => {
     const promises = [];
