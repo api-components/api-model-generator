@@ -96,16 +96,25 @@ function parseFile(file, type, opts) {
  * The keys are paths to the API file relative to `opts.src` and values is
  * API type.
  * @param {String} file Path to a file definition.
- * @return {Map}
+ * @return {Array} First item is the files map and second build configuration if any.
  */
 function prepareFile(file) {
   file = path.resolve(process.cwd(), file);
   const data = require(file);
   const files = new Map();
+  const opts = {};
   Object.keys(data).forEach((key) => {
-    files.set(key, data[key]);
+    switch (key) {
+      case 'src':
+      case 'dest':
+        opts[key] = data[key];
+        break;
+      default:
+        files.set(key, data[key]);
+        break;
+    }
   });
-  return files;
+  return [files, opts];
 }
 
 module.exports = function(files, opts) {
@@ -113,7 +122,9 @@ module.exports = function(files, opts) {
     opts = {};
   }
   if (typeof files === 'string') {
-    files = prepareFile(files);
+    let [cnfFiles, cnfOpts] = prepareFile(files);
+    files = cnfFiles;
+    opts = Object.assign(cnfOpts, opts);
   }
   return amf.Core.init().then(() => {
     const promises = [];

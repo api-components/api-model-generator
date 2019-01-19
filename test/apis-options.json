@@ -1,0 +1,5 @@
+{
+  "apis/raml1.raml": "RAML 1.0",
+  "src": "test/",
+  "dest": "test/playground/"
+}
