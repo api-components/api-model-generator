@@ -20,7 +20,6 @@ function processFile(doc, file, type, destPath) {
   switch (type) {
     case 'RAML 1.0': validateProfile = amf.ProfileNames.RAML; break;
     case 'RAML 0.8': validateProfile = amf.ProfileNames.RAML08; break;
-    case 'OAS 1.0':
     case 'OAS 2.0':
     case 'OAS 3.0':
       validateProfile = amf.ProfileNames.OAS;
@@ -39,9 +38,18 @@ function processFile(doc, file, type, destPath) {
     }
   })
   .then(() => {
-    const r = amf.Core.resolver('RAML 1.0');
-    doc = r.resolve(doc, 'editing');
-    return generator.generateString(doc);
+    let resolver;
+    switch (type) {
+      case 'RAML 1.0': resolver = amf.Core.resolver('RAML 1.0'); break;
+      case 'RAML 0.8': resolver = amf.Core.resolver('RAML 0.8'); break;
+      case 'OAS 2.0': resolver = amf.Core.resolver('OAS 2.0'); break;
+      case 'OAS 3.0': resolver = amf.Core.resolver('OAS 3.0'); break;
+    }
+    if (resolver) {
+      doc = resolver.resolve(doc, 'editing');
+    }
+    const opts = amf.render.RenderOptions().withSourceMaps.withCompactUris;
+    return generator.generateString(doc, opts);
   })
   .then((data) => {
     const file = path.join(destPath, dest);
