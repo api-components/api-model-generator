@@ -48,7 +48,7 @@ function processFile(doc, file, type, destPath) {
     if (resolver) {
       doc = resolver.resolve(doc, 'editing');
     }
-    const opts = amf.render.RenderOptions().withSourceMaps.withCompactUris;
+    const opts = amf.render.RenderOptions().withSourceMaps;
     return generator.generateString(doc, opts);
   })
   .then((data) => {

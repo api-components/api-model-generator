@@ -174,6 +174,8 @@ describe('API generation', function() {
       .then(() => fs.readJson(modelFile))
       .then((data) => {
         assert.typeOf(data, 'array');
+        const context = data[0]['@context'];
+        assert.isUndefined(context);
       });
     });
 
@@ -186,6 +188,8 @@ describe('API generation', function() {
       .then(() => fs.readJson(compactModelFile))
       .then((data) => {
         assert.typeOf(data, 'array');
+        const context = data[0]['@context'];
+        assert.typeOf(context, 'object');
       });
     });
   });
