@@ -1,6 +1,6 @@
 {
   "name": "@api-components/api-model-generator",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "AMF model generator for API components",
   "main": "index.js",
   "scripts": {
@@ -13,7 +13,7 @@
     "The Advanced REST client authors <arc@mulesoft.com>"
   ],
   "dependencies": {
-    "amf-client-js": "3.2.1"
+    "amf-client-js": "3.4.1"
   },
   "devDependencies": {
     "chai": "^4.2.0",
