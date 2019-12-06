@@ -15,7 +15,7 @@ amf.plugins.features.AMFValidation.register();
  * @param {String} destPath
  * @return {Promise}
  */
-function processFile(doc, file, type, destPath) {
+async function processFile(doc, file, type, destPath) {
   let validateProfile;
   switch (type) {
     case 'RAML 1.0': validateProfile = amf.ProfileNames.RAML; break;
@@ -31,41 +31,34 @@ function processFile(doc, file, type, destPath) {
   }
 
   const generator = amf.Core.generator('AMF Graph', 'application/ld+json');
-  return amf.AMF.validate(doc, validateProfile)
-  .then((result) => {
-    if (!result.conforms) {
-      console.log(result.toString());
-    }
-  })
-  .then(() => {
-    let resolver;
-    switch (type) {
-      case 'RAML 1.0': resolver = amf.Core.resolver('RAML 1.0'); break;
-      case 'RAML 0.8': resolver = amf.Core.resolver('RAML 0.8'); break;
-      case 'OAS 2.0': resolver = amf.Core.resolver('OAS 2.0'); break;
-      case 'OAS 3.0': resolver = amf.Core.resolver('OAS 3.0'); break;
-    }
-    if (resolver) {
-      doc = resolver.resolve(doc, 'editing');
-    }
-    const opts = amf.render.RenderOptions().withSourceMaps;
-    return generator.generateString(doc, opts);
-  })
-  .then((data) => {
-    const file = path.join(destPath, dest);
-    return fs.ensureFile(file)
-    .then(() => fs.writeFileSync(file, data, 'utf8'));
-  })
-  .then(() => {
-    const opts = amf.render.RenderOptions().withSourceMaps.withCompactUris;
-    // withRawSourceMaps.
-    return generator.generateString(doc, opts);
-  })
-  .then((data) => {
-    const compactDest = dest.replace('.json', '-compact.json');
-    const file = path.join(destPath, compactDest);
-    fs.writeFileSync(file, data, 'utf8');
-  });
+  const vResult = await amf.AMF.validate(doc, validateProfile);
+  if (!vResult.conforms) {
+    console.log(vResult.toString());
+  }
+  let resolver;
+  switch (type) {
+    case 'RAML 1.0': resolver = amf.Core.resolver('RAML 1.0'); break;
+    case 'RAML 0.8': resolver = amf.Core.resolver('RAML 0.8'); break;
+    case 'OAS 2.0': resolver = amf.Core.resolver('OAS 2.0'); break;
+    case 'OAS 3.0': resolver = amf.Core.resolver('OAS 3.0'); break;
+  }
+  if (resolver) {
+    doc = resolver.resolve(doc, 'editing');
+  }
+  const fullFile = path.join(destPath, dest);
+  const compactDest = dest.replace('.json', '-compact.json');
+  const compactFile = path.join(destPath, compactDest);
+
+  const fullOpts = amf.render.RenderOptions().withSourceMaps;
+  const fullData = await generator.generateString(doc, fullOpts);
+  await fs.ensureFile(fullFile);
+  await fs.writeFile(fullFile, fullData, 'utf8');
+
+  const compactOpts = amf.render.RenderOptions().withSourceMaps.withCompactUris;
+  // withRawSourceMaps.
+  const compactData = await generator.generateString(doc, compactOpts);
+  await fs.ensureFile(compactFile);
+  await fs.writeFile(compactFile, compactData, 'utf8');
 }
 /**
  * Parses file and sends it to process.
@@ -78,7 +71,7 @@ function processFile(doc, file, type, destPath) {
  * - `dest` String, default to 'demo/'
  * @return {String}
  */
-function parseFile(file, type, opts) {
+async function parseFile(file, type, opts) {
   let srcDir = opts.src || 'demo/';
   if (srcDir[srcDir.length - 1] !== '/') {
     srcDir += '/';
@@ -96,8 +89,8 @@ function parseFile(file, type, opts) {
     mediaType = 'application/yaml';
   }
   const parser = amf.Core.parser(type, mediaType);
-  return parser.parseFileAsync(`file://${srcDir}${file}`)
-  .then((doc) => processFile(doc, file, type, dest));
+  const doc = await parser.parseFileAsync(`file://${srcDir}${file}`);
+  return processFile(doc, file, type, dest);
 }
 /**
  * Reads `file` as JSON and creates a Map with definitions from the file.
@@ -125,7 +118,7 @@ function prepareFile(file) {
   return [files, opts];
 }
 
-module.exports = function(files, opts) {
+module.exports = async function(files, opts) {
   if (!opts) {
     opts = {};
   }
@@ -134,12 +127,8 @@ module.exports = function(files, opts) {
     files = cnfFiles;
     opts = Object.assign(cnfOpts, opts);
   }
-  return amf.Core.init().then(() => {
-    const promises = [];
-    for (const [file, type] of files) {
-      promises.push(parseFile(file, type, opts));
-    }
-
-    return Promise.all(promises);
-  });
+  await amf.Core.init();
+  for (const [file, type] of files) {
+    await parseFile(file, type, opts);
+  }
 };
