@@ -34,6 +34,7 @@ async function processFile(doc, file, type, destPath, resolution) {
   const generator = amf.Core.generator('AMF Graph', 'application/ld+json');
   const vResult = await amf.AMF.validate(doc, validateProfile);
   if (!vResult.conforms) {
+    /* eslint-disable-next-line no-console */
     console.log(vResult.toString());
   }
   let resolver;
@@ -136,7 +137,7 @@ function prepareFile(file) {
 
 module.exports = async function(files, opts={}) {
   if (typeof files === 'string') {
-    let [cnfFiles, cnfOpts] = prepareFile(files);
+    const [cnfFiles, cnfOpts] = prepareFile(files);
     files = cnfFiles;
     opts = Object.assign(cnfOpts, opts);
   }
