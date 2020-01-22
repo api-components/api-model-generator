@@ -13,9 +13,10 @@ amf.plugins.features.AMFValidation.register();
  * @param {String} file
  * @param {String} type
  * @param {String} destPath
+ * @param {String} resolution
  * @return {Promise}
  */
-async function processFile(doc, file, type, destPath) {
+async function processFile(doc, file, type, destPath, resolution) {
   let validateProfile;
   switch (type) {
     case 'RAML 1.0': validateProfile = amf.ProfileNames.RAML; break;
@@ -43,7 +44,7 @@ async function processFile(doc, file, type, destPath) {
     case 'OAS 3.0': resolver = amf.Core.resolver('OAS 3.0'); break;
   }
   if (resolver) {
-    doc = resolver.resolve(doc, 'editing');
+    doc = resolver.resolve(doc, resolution);
   }
   const fullFile = path.join(destPath, dest);
   const compactDest = dest.replace('.json', '-compact.json');
@@ -60,18 +61,40 @@ async function processFile(doc, file, type, destPath) {
   await fs.ensureFile(compactFile);
   await fs.writeFile(compactFile, compactData, 'utf8');
 }
+
+/**
+ * Normalizes input options to a common structure.
+ * @param {String|Array|Object} input User input
+ * @return {Object} A resulting configuration options with:
+ * - required `type`
+ * - optional `mime`
+ * - optional `resolution`
+ */
+function normalizeOptions(input) {
+  if (Array.isArray(input)) {
+    const [type, mime, resolution] = input;
+    return { type, mime, resolution };
+  }
+  if (typeof input === 'object') {
+    return input;
+  }
+  return {
+    type: input,
+  }
+}
+
 /**
  * Parses file and sends it to process.
  *
  * @param {String} file File name in `demo` folder
- * @param {String|Array<String>} type Source file type or an array where
+ * @param {String|Array<String>} input Source file type or an array where
  * first element is API spec format and second is API file media type
  * @param {Object} opts
  * - `src` String, default to 'demo/'
  * - `dest` String, default to 'demo/'
  * @return {String}
  */
-async function parseFile(file, type, opts) {
+async function parseFile(file, input, opts) {
   let srcDir = opts.src || 'demo/';
   if (srcDir[srcDir.length - 1] !== '/') {
     srcDir += '/';
@@ -80,17 +103,10 @@ async function parseFile(file, type, opts) {
   if (dest[dest.length - 1] !== '/') {
     dest += '/';
   }
-  let mediaType;
-  if (type instanceof Array) {
-    mediaType = type[1];
-    type = type[0];
-  }
-  if (!mediaType) {
-    mediaType = 'application/yaml';
-  }
-  const parser = amf.Core.parser(type, mediaType);
+  const { type, mime='application/yaml', resolution='editing' } = normalizeOptions(input);
+  const parser = amf.Core.parser(type, mime);
   const doc = await parser.parseFileAsync(`file://${srcDir}${file}`);
-  return processFile(doc, file, type, dest);
+  return processFile(doc, file, type, dest, resolution);
 }
 /**
  * Reads `file` as JSON and creates a Map with definitions from the file.
@@ -118,10 +134,7 @@ function prepareFile(file) {
   return [files, opts];
 }
 
-module.exports = async function(files, opts) {
-  if (!opts) {
-    opts = {};
-  }
+module.exports = async function(files, opts={}) {
   if (typeof files === 'string') {
     let [cnfFiles, cnfOpts] = prepareFile(files);
     files = cnfFiles;

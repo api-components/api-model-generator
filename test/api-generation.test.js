@@ -16,7 +16,6 @@ describe('API generation', function() {
 
     beforeEach(function() {
       files = new Map();
-      files.set('apis/raml1.raml', 'RAML 1.0');
       opts = {
         src: srcDir,
         dest
@@ -27,24 +26,64 @@ describe('API generation', function() {
       return fs.remove(dest);
     });
 
-    it('Generates data model for regular model', () => {
-      return generator(files, opts)
-      .then(() => fs.pathExists(modelFile))
-      .then((exists) => assert.isTrue(exists))
-      .then(() => fs.readJson(modelFile))
-      .then((data) => {
-        assert.typeOf(data, 'array');
-      });
+    it('Generates data model for regular model', async () => {
+      files.set('apis/raml1.raml', 'RAML 1.0');
+      await generator(files, opts);
+      const exists = await fs.pathExists(modelFile);
+      assert.isTrue(exists, 'model file exists');
+      const data = await fs.readJson(modelFile);
+      assert.typeOf(data, 'array');
     });
 
-    it('Generates data model for compact model', () => {
-      return generator(files, opts)
-      .then(() => fs.pathExists(compactModelFile))
-      .then((exists) => assert.isTrue(exists))
-      .then(() => fs.readJson(compactModelFile))
-      .then((data) => {
-        assert.typeOf(data, 'array');
+    it('Generates data model for compact model', async () => {
+      files.set('apis/raml1.raml', 'RAML 1.0');
+      await generator(files, opts);
+      const exists = await fs.pathExists(compactModelFile);
+      assert.isTrue(exists, 'model file exists');
+      const data = await fs.readJson(compactModelFile);
+      assert.typeOf(data, 'array');
+    });
+
+    it('generates model with options (Object)', async () => {
+      files.set('apis/raml1.raml', {
+        type: 'RAML 1.0',
+        mime: 'application/raml',
+        resolution: 'editing',
       });
+      await generator(files, opts);
+      const exists = await fs.pathExists(compactModelFile);
+      assert.isTrue(exists, 'model file exists');
+      const data = await fs.readJson(compactModelFile);
+      assert.typeOf(data, 'array');
+    });
+
+    it('uses default values (Object)', async () => {
+      files.set('apis/raml1.raml', {
+        type: 'RAML 1.0',
+      });
+      await generator(files, opts);
+      const exists = await fs.pathExists(compactModelFile);
+      assert.isTrue(exists, 'model file exists');
+      const data = await fs.readJson(compactModelFile);
+      assert.typeOf(data, 'array');
+    });
+
+    it('generates model with options (Array)', async () => {
+      files.set('apis/raml1.raml', ['RAML 1.0', 'application/raml', 'editing']);
+      await generator(files, opts);
+      const exists = await fs.pathExists(compactModelFile);
+      assert.isTrue(exists, 'model file exists');
+      const data = await fs.readJson(compactModelFile);
+      assert.typeOf(data, 'array');
+    });
+
+    it('uses default values (Array)', async () => {
+      files.set('apis/raml1.raml', ['RAML 1.0']);
+      await generator(files, opts);
+      const exists = await fs.pathExists(compactModelFile);
+      assert.isTrue(exists, 'model file exists');
+      const data = await fs.readJson(compactModelFile);
+      assert.typeOf(data, 'array');
     });
   });
 
