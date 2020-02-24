@@ -1,6 +1,6 @@
 {
   "name": "@api-components/api-model-generator",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "AMF model generator for API components",
   "main": "index.js",
   "scripts": {
