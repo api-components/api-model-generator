@@ -232,4 +232,44 @@ describe('API generation', function() {
       });
     });
   });
+
+  describe('AsyncAPI 2.0 data model generation', function() {
+    let files;
+    let opts;
+
+    const modelFile = path.join(dest, 'asyncApi20.json');
+    const compactModelFile = path.join(dest, 'asyncApi20-compact.json');
+
+    beforeEach(function() {
+      files = new Map();
+      opts = {
+        src: srcDir,
+        dest
+      };
+    });
+
+    afterEach(function() {
+      return fs.remove(dest);
+    });
+
+    it('Generates data model for regular model', async () => {
+      files.set('apis/asyncApi20.yaml', { "type": "ASYNC 2.0", "mime": "application/yaml" });
+      await generator(files, opts);
+      const exists = await fs.pathExists(modelFile);
+      assert.isTrue(exists, 'model file exists');
+      const data = await fs.readJson(modelFile);
+      assert.typeOf(data, 'array');
+    });
+
+    it('Generates data model for compact model', async () => {
+      files.set('apis/asyncApi20.yaml', { "type": "ASYNC 2.0", "mime": "application/yaml" });
+      await generator(files, opts);
+      const exists = await fs.pathExists(compactModelFile);
+      assert.isTrue(exists, 'model file exists');
+      const data = await fs.readJson(compactModelFile);
+      assert.typeOf(data, 'array');
+    });
+  });
+
+
 });
