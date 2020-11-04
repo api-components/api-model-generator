@@ -1,3 +1,4 @@
 {
-  "apis/raml1.raml": "RAML 1.0"
+  "apis/raml1.raml": "RAML 1.0",
+  "apis/asyncApi20.yaml": { "type": "ASYNC 2.0", "mime": "application/yaml" }
 }
