@@ -25,6 +25,9 @@ async function processFile(doc, file, type, destPath, resolution) {
     case 'OAS 3.0':
       validateProfile = amf.ProfileNames.OAS;
       break;
+    case 'ASYNC 2.0':
+      validateProfile = amf.ProfileNames.ASYNC20;
+      break;
   }
   let dest = file.substr(0, file.lastIndexOf('.')) + '.json';
   if (dest.indexOf('/') !== -1) {
@@ -43,6 +46,7 @@ async function processFile(doc, file, type, destPath, resolution) {
     case 'RAML 0.8': resolver = amf.Core.resolver('RAML 0.8'); break;
     case 'OAS 2.0': resolver = amf.Core.resolver('OAS 2.0'); break;
     case 'OAS 3.0': resolver = amf.Core.resolver('OAS 3.0'); break;
+    case 'ASYNC 2.0': resolver = amf.Core.resolver('ASYNC 2.0'); break;
   }
   if (resolver) {
     doc = resolver.resolve(doc, resolution);
