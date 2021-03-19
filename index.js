@@ -1,3 +1,4 @@
+/* eslint-disable import/no-commonjs */
 const amf = require('amf-client-js');
 const fs = require('fs-extra');
 const path = require('path');
@@ -6,15 +7,20 @@ amf.plugins.document.WebApi.register();
 amf.plugins.document.Vocabularies.register();
 amf.plugins.features.AMFValidation.register();
 
+/** @typedef {import('./types').ApiConfiguration} ApiConfiguration */
+/** @typedef {import('./types').FilePrepareResult} FilePrepareResult */
+/** @typedef {import('./types').ApiGenerationOptions} ApiGenerationOptions */
+/** @typedef {import('./types').ApiType} ApiType */
+
 /**
  * Generates json/ld file from parsed document.
  *
- * @param {Object} doc
- * @param {String} file
- * @param {String} type
- * @param {String} destPath
- * @param {String} resolution
- * @return {Promise}
+ * @param {amf.model.document.BaseUnit} doc
+ * @param {string} file
+ * @param {string} type
+ * @param {string} destPath
+ * @param {string} resolution
+ * @return {Promise<void>}
  */
 async function processFile(doc, file, type, destPath, resolution) {
   let validateProfile;
@@ -26,16 +32,17 @@ async function processFile(doc, file, type, destPath, resolution) {
       validateProfile = amf.ProfileNames.OAS;
       break;
     case 'ASYNC 2.0':
+      // @ts-ignore
       validateProfile = amf.ProfileNames.ASYNC20;
       break;
   }
-  let dest = file.substr(0, file.lastIndexOf('.')) + '.json';
+  let dest = `${file.substr(0, file.lastIndexOf('.')) }.json`;
   if (dest.indexOf('/') !== -1) {
     dest = dest.substr(dest.lastIndexOf('/'));
   }
 
   const generator = amf.Core.generator('AMF Graph', 'application/ld+json');
-  const vResult = await amf.AMF.validate(doc, validateProfile);
+  const vResult = await amf.AMF.validate(doc, validateProfile, undefined);
   if (!vResult.conforms) {
     /* eslint-disable-next-line no-console */
     console.log(vResult.toString());
@@ -55,11 +62,13 @@ async function processFile(doc, file, type, destPath, resolution) {
   const compactDest = dest.replace('.json', '-compact.json');
   const compactFile = path.join(destPath, compactDest);
 
+  // @ts-ignore
   const fullOpts = amf.render.RenderOptions().withSourceMaps;
   const fullData = await generator.generateString(doc, fullOpts);
   await fs.ensureFile(fullFile);
   await fs.writeFile(fullFile, fullData, 'utf8');
 
+  // @ts-ignore
   const compactOpts = amf.render.RenderOptions().withSourceMaps.withCompactUris;
   // withRawSourceMaps.
   const compactData = await generator.generateString(doc, compactOpts);
@@ -69,56 +78,52 @@ async function processFile(doc, file, type, destPath, resolution) {
 
 /**
  * Normalizes input options to a common structure.
- * @param {String|Array|Object} input User input
- * @return {Object} A resulting configuration options with:
- * - required `type`
- * - optional `mime`
- * - optional `resolution`
+ * @param {ApiConfiguration|string|string[]} input User input
+ * @return {ApiConfiguration} A resulting configuration options with
  */
 function normalizeOptions(input) {
   if (Array.isArray(input)) {
     const [type, mime, resolution] = input;
+    // @ts-ignore
     return { type, mime, resolution };
   }
   if (typeof input === 'object') {
     return input;
   }
   return {
-    type: input,
-  }
+    type: /** @type ApiType */ (input),
+  };
 }
 
 /**
  * Parses file and sends it to process.
  *
- * @param {String} file File name in `demo` folder
- * @param {String|Array<String>} input Source file type or an array where
- * first element is API spec format and second is API file media type
- * @param {Object} opts
- * - `src` String, default to 'demo/'
- * - `dest` String, default to 'demo/'
- * @return {String}
+ * @param {string} file File name in `demo` folder
+ * @param {ApiConfiguration|string|string[]} cnf
+ * @param {ApiGenerationOptions} opts Processing options
+ * @return {Promise<void>}
  */
-async function parseFile(file, input, opts) {
-  let srcDir = opts.src || 'demo/';
-  if (srcDir[srcDir.length - 1] !== '/') {
-    srcDir += '/';
+async function parseFile(file, cnf, opts) {
+  let { src='demo/', dest='demo/' } = opts;
+  if (!src.endsWith('/')) {
+    src += '/';
   }
-  let dest = opts.dest || 'demo/';
-  if (dest[dest.length - 1] !== '/') {
+  if (!dest.endsWith('/')) {
     dest += '/';
   }
-  const { type, mime='application/yaml', resolution='editing' } = normalizeOptions(input);
+  const { type, mime='application/yaml', resolution='editing' } = normalizeOptions(cnf);
   const parser = amf.Core.parser(type, mime);
-  const doc = await parser.parseFileAsync(`file://${srcDir}${file}`);
+  const doc = await parser.parseFileAsync(`file://${src}${file}`);
   return processFile(doc, file, type, dest, resolution);
 }
+
 /**
  * Reads `file` as JSON and creates a Map with definitions from the file.
  * The keys are paths to the API file relative to `opts.src` and values is
  * API type.
- * @param {String} file Path to a file definition.
- * @return {Array} First item is the files map and second build configuration if any.
+ * @param {string} file Path to a file definition.
+ * @return {FilePrepareResult} The key is the api file location in the `opts.src`
+ * directory. The value is the build configuration.
  */
 function prepareFile(file) {
   file = path.resolve(process.cwd(), file);
@@ -136,17 +141,26 @@ function prepareFile(file) {
         break;
     }
   });
-  return [files, opts];
+  return {
+    files,
+    opts,
+  };
 }
 
-module.exports = async function(files, opts={}) {
-  if (typeof files === 'string') {
-    const [cnfFiles, cnfOpts] = prepareFile(files);
-    files = cnfFiles;
-    opts = Object.assign(cnfOpts, opts);
+/**
+ * @param {string|Map<string, ApiConfiguration|string|string[]>} init If string then this is a location of
+ * the file that holds processing configuration. Otherwise it is already prepared configuration.
+ * @param {ApiGenerationOptions=} opts Processing options.
+ * @return {Promise<void>}
+ */
+module.exports = async function(init, opts={}) {
+  if (typeof init === 'string') {
+    const { files: cnfFiles, opts: cnfOpts } = prepareFile(init);
+    init = cnfFiles;
+    opts = { ...cnfOpts, ...opts };
   }
   await amf.Core.init();
-  for (const [file, type] of files) {
+  for (const [file, type] of init) {
     await parseFile(file, type, opts);
   }
 };
