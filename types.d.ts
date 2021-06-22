@@ -15,6 +15,11 @@ export declare interface ApiConfiguration {
    * @default editing
    */
   resolution?: string;
+  /**
+   * Whether to apply flattened to render options
+   * @default false
+   */
+  flattened?: boolean;
 }
 
 export declare interface ApiGenerationOptions {
