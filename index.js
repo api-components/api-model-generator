@@ -20,9 +20,10 @@ amf.plugins.features.AMFValidation.register();
  * @param {string} type
  * @param {string} destPath
  * @param {string} resolution
+ * @param {boolean} flattened
  * @return {Promise<void>}
  */
-async function processFile(doc, file, type, destPath, resolution) {
+async function processFile(doc, file, type, destPath, resolution, flattened) {
   let validateProfile;
   switch (type) {
     case 'RAML 1.0': validateProfile = amf.ProfileNames.RAML; break;
@@ -63,13 +64,19 @@ async function processFile(doc, file, type, destPath, resolution) {
   const compactFile = path.join(destPath, compactDest);
 
   // @ts-ignore
-  const fullOpts = amf.render.RenderOptions().withSourceMaps;
+  let fullOpts = amf.render.RenderOptions().withSourceMaps;
+  if (flattened) {
+    fullOpts = fullOpts.withFlattenedJsonLd;
+  }
   const fullData = await generator.generateString(doc, fullOpts);
   await fs.ensureFile(fullFile);
   await fs.writeFile(fullFile, fullData, 'utf8');
 
   // @ts-ignore
-  const compactOpts = amf.render.RenderOptions().withSourceMaps.withCompactUris;
+  let compactOpts = amf.render.RenderOptions().withSourceMaps.withCompactUris;
+  if (flattened) {
+    compactOpts = fullOpts.withFlattenedJsonLd;
+  }
   // withRawSourceMaps.
   const compactData = await generator.generateString(doc, compactOpts);
   await fs.ensureFile(compactFile);
@@ -83,9 +90,9 @@ async function processFile(doc, file, type, destPath, resolution) {
  */
 function normalizeOptions(input) {
   if (Array.isArray(input)) {
-    const [type, mime, resolution] = input;
+    const [type, mime, resolution, flattened] = input;
     // @ts-ignore
-    return { type, mime, resolution };
+    return { type, mime, resolution, flattened };
   }
   if (typeof input === 'object') {
     return input;
@@ -111,10 +118,10 @@ async function parseFile(file, cnf, opts) {
   if (!dest.endsWith('/')) {
     dest += '/';
   }
-  const { type, mime='application/yaml', resolution='editing' } = normalizeOptions(cnf);
+  const { type, mime='application/yaml', resolution='editing', flattened = false } = normalizeOptions(cnf);
   const parser = amf.Core.parser(type, mime);
   const doc = await parser.parseFileAsync(`file://${src}${file}`);
-  return processFile(doc, file, type, dest, resolution);
+  return processFile(doc, file, type, dest, resolution, flattened);
 }
 
 /**
