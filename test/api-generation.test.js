@@ -154,6 +154,7 @@ describe('API generation', () => {
   describe('Api list config file with options', () => {
     const modelFile = path.join(dest, 'raml1.json');
     const compactModelFile = path.join(dest, 'raml1-compact.json');
+    const flattenedModelFile = path.join(dest, 'flattenedApi-compact.json');
     const configFile = path.join('test', 'apis-options.json');
 
     afterEach(() => fs.remove(dest));
@@ -167,6 +168,16 @@ describe('API generation', () => {
     }));
 
     it('Generates data model for compact model', () => generator(configFile)
+    .then(() => fs.pathExists(flattenedModelFile))
+    .then((exists) => assert.isTrue(exists))
+    .then(() => fs.readJson(flattenedModelFile))
+    .then((data) => {
+      const graph = data['@graph'];
+      assert.isDefined(graph);
+    }));
+
+
+    it('Generates flattened data model', () => generator(configFile)
     .then(() => fs.pathExists(compactModelFile))
     .then((exists) => assert.isTrue(exists))
     .then(() => fs.readJson(compactModelFile))

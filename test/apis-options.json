@@ -1,5 +1,6 @@
 {
   "apis/raml1.raml": "RAML 1.0",
+  "apis/flattenedApi.raml": { "type": "RAML 1.0", "flattened": true },
   "src": "test/",
   "dest": "test/playground/"
 }

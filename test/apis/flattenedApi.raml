@@ -1,0 +1,18 @@
+#%RAML 1.0
+title: API body demo
+version: v1
+baseUri: http://domain.com/
+
+/endpoint:
+  post:
+    headers:
+      x-header: string
+    queryParameters:
+      param1: number
+    responses:
+      200:
+        headers:
+          x-response: integer
+        body:
+          application/json:
+            type: object
