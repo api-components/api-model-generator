@@ -75,7 +75,7 @@ async function processFile(doc, file, type, destPath, resolution, flattened) {
   // @ts-ignore
   let compactOpts = amf.render.RenderOptions().withSourceMaps.withCompactUris;
   if (flattened) {
-    compactOpts = fullOpts.withFlattenedJsonLd;
+    compactOpts = compactOpts.withFlattenedJsonLd;
   }
   // withRawSourceMaps.
   const compactData = await generator.generateString(doc, compactOpts);

@@ -154,7 +154,8 @@ describe('API generation', () => {
   describe('Api list config file with options', () => {
     const modelFile = path.join(dest, 'raml1.json');
     const compactModelFile = path.join(dest, 'raml1-compact.json');
-    const flattenedModelFile = path.join(dest, 'flattenedApi-compact.json');
+    const flattenedModelFile = path.join(dest, 'flattenedApi.json');
+    const compactFlattenedModelFile = path.join(dest, 'flattenedApi-compact.json');
     const configFile = path.join('test', 'apis-options.json');
 
     afterEach(() => fs.remove(dest));
@@ -167,22 +168,34 @@ describe('API generation', () => {
       assert.typeOf(data, 'array');
     }));
 
-    it('Generates data model for compact model', () => generator(configFile)
+    it('Generates flattened data model for compact model', () => generator(configFile)
+    .then(() => fs.pathExists(compactModelFile))
+    .then((exists) => assert.isTrue(exists))
+    .then(() => fs.readJson(compactModelFile))
+    .then((data) => {
+      assert.typeOf(data, 'array');
+    }));
+
+    it('Generates flattened data model for regular model', () => generator(configFile)
     .then(() => fs.pathExists(flattenedModelFile))
     .then((exists) => assert.isTrue(exists))
     .then(() => fs.readJson(flattenedModelFile))
     .then((data) => {
       const graph = data['@graph'];
       assert.isDefined(graph);
+      const ctx = data['@context'];
+      assert.isUndefined(ctx);
     }));
 
-
-    it('Generates flattened data model', () => generator(configFile)
-    .then(() => fs.pathExists(compactModelFile))
+    it('Generates flattened data model for compact model', () => generator(configFile)
+    .then(() => fs.pathExists(compactFlattenedModelFile))
     .then((exists) => assert.isTrue(exists))
-    .then(() => fs.readJson(compactModelFile))
+    .then(() => fs.readJson(compactFlattenedModelFile))
     .then((data) => {
-      assert.typeOf(data, 'array');
+      const graph = data['@graph'];
+      assert.isDefined(graph);
+      const ctx = data['@context'];
+      assert.typeOf(ctx, 'object');
     }));
   });
 
