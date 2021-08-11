@@ -3,18 +3,18 @@
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "node",
-    "lib": ["ES2017"],
+    "lib": ["es2017"],
     "allowJs": true,
     "checkJs": true,
     "noEmit": true,
     "strict": false,
     "noImplicitThis": true,
     "alwaysStrict": true,
-    "esModuleInterop": true
+    "esModuleInterop": false,
+    "plugins": []
   },
   "include": [
-    "**/*.js",
-    "**/*.mjs"
+    "**/*.js"
   ],
   "exclude": []
 }

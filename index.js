@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable import/no-commonjs */
 const amf = require('amf-client-js');
 const fs = require('fs-extra');
@@ -160,7 +161,7 @@ function prepareFile(file) {
  * @param {ApiGenerationOptions=} opts Processing options.
  * @return {Promise<void>}
  */
-module.exports = async function(init, opts={}) {
+async function main(init, opts={}) {
   if (typeof init === 'string') {
     const { files: cnfFiles, opts: cnfOpts } = prepareFile(init);
     init = cnfFiles;
@@ -170,4 +171,23 @@ module.exports = async function(init, opts={}) {
   for (const [file, type] of init) {
     await parseFile(file, type, opts);
   }
-};
+}
+
+/**
+ * Runs the default function and exists the process when failed.
+ * @param {Map<string, ApiConfiguration>} init The list of files to parse with their configuration.
+ * @param {ApiGenerationOptions=} opts Optional parsing options.
+ */
+async function generate(init, opts) {
+  try {
+    console.log(`Generating graph models for ${init.size} api(s).`);
+    await main(init, opts);
+    console.log('Models created');
+  } catch (cause) {
+    console.error(cause);
+    throw new Error('Unable to process APIs.');
+  }
+}
+
+const myModule = module.exports = main;
+myModule.generate = generate;

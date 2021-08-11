@@ -1,8 +1,11 @@
 /* eslint-disable import/no-commonjs */
+/* eslint-disable import/extensions */
 const { assert } = require('chai');
 const fs = require('fs-extra');
 const path = require('path');
 const generator = require('../');
+
+/** @typedef {import('../types').ApiConfiguration} ApiConfiguration */
 
 describe('API generation', () => {
   const dest = path.join('test', 'playground');
@@ -264,6 +267,32 @@ describe('API generation', () => {
       const exists = await fs.pathExists(compactModelFile);
       assert.isTrue(exists, 'model file exists');
       const data = await fs.readJson(compactModelFile);
+      assert.typeOf(data, 'array');
+    });
+  });
+
+  describe('generator.generate()', () => {
+    let opts;
+
+    const modelFile = path.join(dest, 'raml1.json');
+
+    beforeEach(() => {
+      opts = {
+        src: srcDir,
+        dest,
+      };
+    });
+
+    afterEach(() => fs.remove(dest));
+
+    it('generates the model file', async () => {
+      /** @type Map<string, ApiConfiguration> */
+      const files = new Map();
+      files.set('apis/raml1.raml', { type: 'RAML 1.0' });
+      await generator.generate(files, opts);
+      const exists = await fs.pathExists(modelFile);
+      assert.isTrue(exists, 'model file exists');
+      const data = await fs.readJson(modelFile);
       assert.typeOf(data, 'array');
     });
   });
