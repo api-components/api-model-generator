@@ -11,6 +11,10 @@
     "name": "Pawel Uchida-Psztyc",
     "email": "arc@mulesoft.com"
   },
+  "contributors": [
+    "Leandro Bauret",
+    "Francisco Di Giandomenico"
+  ],
   "dependencies": {
     "amf-client-js": "^4.7.6",
     "fs-extra": "^10.0.0"
