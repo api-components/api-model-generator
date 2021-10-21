@@ -1,13 +1,7 @@
-/* eslint-disable import/no-commonjs */
 module.exports = {
-  extends: [
-    require.resolve('eslint-config-google'),
-    require.resolve('eslint-config-node'),
-  ],
-  parser: 'babel-eslint',
   parserOptions: {
     sourceType: 'module',
-    ecmaVersion: 8,
+    ecmaVersion: 9,
   },
   env: {
     browser: false,
@@ -15,11 +9,6 @@ module.exports = {
     node: true,
     es6: true,
   },
-  plugins: [
-    'no-only-tests',
-    'babel',
-    'import',
-  ],
   overrides: [
     {
       files: [
@@ -49,26 +38,6 @@ module.exports = {
     ],
     'lines-between-class-members': 'error',
     'no-underscore-dangle': 'off',
-    'no-only-tests/no-only-tests': 'error',
-    'import/extensions': [
-      'error',
-      'always',
-      {
-        ignorePackages: true,
-      },
-    ],
-    'import/prefer-default-export': 'off',
-    'import/no-nodejs-modules': 'off',
-    'import/no-extraneous-dependencies': [
-      'error',
-      {
-        'devDependencies': [
-          '**/test/**/*.js',
-          '**/*.config.js',
-          '**/*.conf.js',
-        ],
-      },
-    ],
     'class-methods-use-this': [
       // this is unnecessary for node apps.
       'off',
@@ -86,7 +55,7 @@ module.exports = {
         FunctionExpression: true,
       },
     }],
-    'comma-dangle': 'warn',
+    // 'comma-dangle': 'warn',
     'new-cap': [
       'error',
       {
@@ -108,7 +77,6 @@ module.exports = {
       'error',
     ],
     'no-unused-expressions': 'error',
-    'babel/no-unused-expressions': 'error',
     'prefer-template': 'error',
     'no-return-await': 'error',
     'no-template-curly-in-string': 'error',

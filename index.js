@@ -1,5 +1,4 @@
 /* eslint-disable no-console */
-/* eslint-disable import/no-commonjs */
 const amf = require('amf-client-js');
 const fs = require('fs-extra');
 const path = require('path');
