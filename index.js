@@ -3,9 +3,14 @@ const amf = require('amf-client-js');
 const fs = require('fs-extra');
 const path = require('path');
 
-amf.plugins.document.WebApi.register();
-amf.plugins.document.Vocabularies.register();
-amf.plugins.features.AMFValidation.register();
+const {
+  RAMLConfiguration,
+  OASConfiguration,
+  AsyncAPIConfiguration,
+  GRPCConfiguration,
+  RenderOptions,
+  PipelineId,
+} = amf;
 
 /** @typedef {import('./types').ApiConfiguration} ApiConfiguration */
 /** @typedef {import('./types').FilePrepareResult} FilePrepareResult */
@@ -13,9 +18,29 @@ amf.plugins.features.AMFValidation.register();
 /** @typedef {import('./types').ApiType} ApiType */
 
 /**
- * Generates json/ld file from parsed document.
+ * @param {string} type
+ * @returns {any}
+ */
+function getConfiguration(type) {
+  switch (type) {
+    case 'RAML 0.8': return RAMLConfiguration.RAML08();
+    case 'RAML 1.0': return RAMLConfiguration.RAML10();
+    case 'OAS 2.0':
+    case 'OAS 2':
+      return OASConfiguration.OAS20();
+    case 'OAS 3.0':
+    case 'OAS 3':
+      return OASConfiguration.OAS30();
+    case 'ASYNC 2.0': return AsyncAPIConfiguration.Async20();
+    case 'GRPC': return GRPCConfiguration.GRPC();
+    default: throw new Error(`Unknown API type: ${type}`);
+  }
+}
+
+/**
+ * Generates json/ld file from parsed document using AMF v5 API.
  *
- * @param {amf.model.document.BaseUnit} doc
+ * @param {string} sourceFile
  * @param {string} file
  * @param {string} type
  * @param {string} destPath
@@ -23,64 +48,48 @@ amf.plugins.features.AMFValidation.register();
  * @param {boolean} flattened
  * @return {Promise<void>}
  */
-async function processFile(doc, file, type, destPath, resolution, flattened) {
-  let validateProfile;
-  switch (type) {
-    case 'RAML 1.0': validateProfile = amf.ProfileNames.RAML; break;
-    case 'RAML 0.8': validateProfile = amf.ProfileNames.RAML08; break;
-    case 'OAS 2.0':
-    case 'OAS 3.0':
-      validateProfile = amf.ProfileNames.OAS;
-      break;
-    case 'ASYNC 2.0':
-      // @ts-ignore
-      validateProfile = amf.ProfileNames.ASYNC20;
-      break;
-  }
+async function processFile(sourceFile, file, type, destPath, resolution, flattened) {
   let dest = `${file.substr(0, file.lastIndexOf('.')) }.json`;
   if (dest.indexOf('/') !== -1) {
     dest = dest.substr(dest.lastIndexOf('/'));
   }
 
-  const generator = amf.Core.generator('AMF Graph', 'application/ld+json');
-  const vResult = await amf.AMF.validate(doc, validateProfile, undefined);
-  if (!vResult.conforms) {
+  // Setup render options
+  let renderOpts = new RenderOptions().withSourceMaps().withCompactUris();
+  if (flattened) {
+    renderOpts = renderOpts.withCompactedEmission();
+  }
+
+  // Get configuration for API type
+  const apiConfiguration = getConfiguration(type).withRenderOptions(renderOpts);
+  const client = apiConfiguration.baseUnitClient();
+
+  // Parse the file
+  const parseResult = await client.parse(sourceFile);
+
+  if (!parseResult.conforms) {
     /* eslint-disable-next-line no-console */
-    console.log(vResult.toString());
+    console.log('Validation warnings/errors:');
+    console.log(parseResult.toString());
   }
-  let resolver;
-  switch (type) {
-    case 'RAML 1.0': resolver = amf.Core.resolver('RAML 1.0'); break;
-    case 'RAML 0.8': resolver = amf.Core.resolver('RAML 0.8'); break;
-    case 'OAS 2.0': resolver = amf.Core.resolver('OAS 2.0'); break;
-    case 'OAS 3.0': resolver = amf.Core.resolver('OAS 3.0'); break;
-    case 'ASYNC 2.0': resolver = amf.Core.resolver('ASYNC 2.0'); break;
-  }
-  if (resolver) {
-    doc = resolver.resolve(doc, resolution);
-  }
+
+  // Transform using resolution pipeline
+  const pipelineId = resolution === 'editing' ? PipelineId.Editing : PipelineId.Default;
+  const transformed = client.transform(parseResult.baseUnit, pipelineId);
+
+  // Render to JSON-LD
   const fullFile = path.join(destPath, dest);
   const compactDest = dest.replace('.json', '-compact.json');
   const compactFile = path.join(destPath, compactDest);
 
-  // @ts-ignore
-  let fullOpts = amf.render.RenderOptions().withSourceMaps;
-  if (flattened) {
-    fullOpts = fullOpts.withFlattenedJsonLd;
-  }
-  const fullData = await generator.generateString(doc, fullOpts);
-  await fs.ensureFile(fullFile);
-  await fs.writeFile(fullFile, fullData, 'utf8');
+  // Generate full model (same as compact in v5 with withCompactUris)
+  const modelData = await client.render(transformed.baseUnit, 'application/ld+json');
 
-  // @ts-ignore
-  let compactOpts = amf.render.RenderOptions().withSourceMaps.withCompactUris;
-  if (flattened) {
-    compactOpts = compactOpts.withFlattenedJsonLd;
-  }
-  // withRawSourceMaps.
-  const compactData = await generator.generateString(doc, compactOpts);
+  await fs.ensureFile(fullFile);
+  await fs.writeFile(fullFile, modelData, 'utf8');
+
   await fs.ensureFile(compactFile);
-  await fs.writeFile(compactFile, compactData, 'utf8');
+  await fs.writeFile(compactFile, modelData, 'utf8');
 }
 
 /**
@@ -119,9 +128,8 @@ async function parseFile(file, cnf, opts) {
     dest += '/';
   }
   const { type, mime='application/yaml', resolution='editing', flattened = false } = normalizeOptions(cnf);
-  const parser = amf.Core.parser(type, mime);
-  const doc = await parser.parseFileAsync(`file://${src}${file}`);
-  return processFile(doc, file, type, dest, resolution, flattened);
+  const sourceFile = `file://${src}${file}`;
+  return processFile(sourceFile, file, type, dest, resolution, flattened);
 }
 
 /**
@@ -166,7 +174,7 @@ async function main(init, opts={}) {
     init = cnfFiles;
     opts = { ...cnfOpts, ...opts };
   }
-  await amf.Core.init();
+  // AMF v5 doesn't require explicit initialization
   for (const [file, type] of init) {
     await parseFile(file, type, opts);
   }

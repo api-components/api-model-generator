@@ -1,6 +1,6 @@
 {
   "name": "@api-components/api-model-generator",
-  "version": "0.2.14",
+  "version": "0.3.0",
   "description": "AMF model generator for API components",
   "main": "index.js",
   "scripts": {
@@ -16,7 +16,7 @@
     "Francisco Di Giandomenico"
   ],
   "dependencies": {
-    "amf-client-js": "^4.7.8",
+    "amf-client-js": "^5.10.2",
     "fs-extra": "^10.0.0"
   },
   "devDependencies": {
