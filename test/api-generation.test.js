@@ -282,6 +282,55 @@ describe('API generation', () => {
     });
   });
 
+  describe('gRPC data model generation', () => {
+    let files;
+    let opts;
+
+    const modelFile = path.join(dest, 'grpc-test.json');
+    const compactModelFile = path.join(dest, 'grpc-test-compact.json');
+
+    beforeEach(() => {
+      files = new Map();
+      opts = {
+        src: srcDir,
+        dest,
+      };
+    });
+
+    afterEach(() => fs.remove(dest));
+
+    it('Generates data model for regular model', async () => {
+      files.set('apis/grpc-test.proto', 'GRPC');
+      await generator(files, opts);
+      const exists = await fs.pathExists(modelFile);
+      assert.isTrue(exists, 'model file exists');
+      const data = await fs.readJson(modelFile);
+      assertValidAmfModel(data);
+    });
+
+    it('Generates data model for compact model', async () => {
+      files.set('apis/grpc-test.proto', 'GRPC');
+      await generator(files, opts);
+      const exists = await fs.pathExists(compactModelFile);
+      assert.isTrue(exists, 'model file exists');
+      const data = await fs.readJson(compactModelFile);
+      assertValidAmfModel(data);
+    });
+
+    it('Generates data model with grpc string format', async () => {
+      files.set('apis/grpc-test.proto', 'GRPC');
+      await generator(files, opts);
+      const exists = await fs.pathExists(modelFile);
+      assert.isTrue(exists, 'model file exists');
+      const data = await fs.readJson(modelFile);
+      assertValidAmfModel(data);
+      // Verify it's a gRPC/WebAPI model
+      const graph = data['@graph'];
+      const webApi = graph.find(node => node['@type'] && node['@type'].includes('apiContract:WebAPI'));
+      assert.isDefined(webApi, 'Should contain WebAPI node');
+    });
+  });
+
   describe('generator.generate()', () => {
     let opts;
 
