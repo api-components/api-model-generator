@@ -7,6 +7,17 @@ const generator = require('../');
 
 /** @typedef {import('../types').ApiConfiguration} ApiConfiguration */
 
+/**
+ * Helper to validate AMF v5 JSON-LD output format
+ * @param {any} data
+ */
+function assertValidAmfModel(data) {
+  assert.typeOf(data, 'object', 'data is an object');
+  assert.property(data, '@graph', 'has @graph property');
+  assert.typeOf(data['@graph'], 'array', '@graph is an array');
+  assert.isAbove(data['@graph'].length, 0, '@graph has elements');
+}
+
 describe('API generation', () => {
   const dest = path.join('test', 'playground');
   const srcDir = 'test/';
@@ -34,7 +45,7 @@ describe('API generation', () => {
       const exists = await fs.pathExists(modelFile);
       assert.isTrue(exists, 'model file exists');
       const data = await fs.readJson(modelFile);
-      assert.typeOf(data, 'array');
+      assertValidAmfModel(data);
     });
 
     it('Generates data model for compact model', async () => {
@@ -43,7 +54,7 @@ describe('API generation', () => {
       const exists = await fs.pathExists(compactModelFile);
       assert.isTrue(exists, 'model file exists');
       const data = await fs.readJson(compactModelFile);
-      assert.typeOf(data, 'array');
+      assertValidAmfModel(data);
     });
 
     it('generates model with options (Object)', async () => {
@@ -56,7 +67,7 @@ describe('API generation', () => {
       const exists = await fs.pathExists(compactModelFile);
       assert.isTrue(exists, 'model file exists');
       const data = await fs.readJson(compactModelFile);
-      assert.typeOf(data, 'array');
+      assertValidAmfModel(data);
     });
 
     it('uses default values (Object)', async () => {
@@ -67,7 +78,7 @@ describe('API generation', () => {
       const exists = await fs.pathExists(compactModelFile);
       assert.isTrue(exists, 'model file exists');
       const data = await fs.readJson(compactModelFile);
-      assert.typeOf(data, 'array');
+      assertValidAmfModel(data);
     });
 
     it('generates model with options (Array)', async () => {
@@ -76,7 +87,7 @@ describe('API generation', () => {
       const exists = await fs.pathExists(compactModelFile);
       assert.isTrue(exists, 'model file exists');
       const data = await fs.readJson(compactModelFile);
-      assert.typeOf(data, 'array');
+      assertValidAmfModel(data);
     });
 
     it('uses default values (Array)', async () => {
@@ -85,7 +96,7 @@ describe('API generation', () => {
       const exists = await fs.pathExists(compactModelFile);
       assert.isTrue(exists, 'model file exists');
       const data = await fs.readJson(compactModelFile);
-      assert.typeOf(data, 'array');
+      assertValidAmfModel(data);
     });
   });
 
@@ -111,7 +122,7 @@ describe('API generation', () => {
     .then((exists) => assert.isTrue(exists))
     .then(() => fs.readJson(modelFile))
     .then((data) => {
-      assert.typeOf(data, 'array');
+      assertValidAmfModel(data);
     }));
 
     it('Generates data model for compact model', () => generator(files, opts)
@@ -119,7 +130,7 @@ describe('API generation', () => {
     .then((exists) => assert.isTrue(exists))
     .then(() => fs.readJson(compactModelFile))
     .then((data) => {
-      assert.typeOf(data, 'array');
+      assertValidAmfModel(data);
     }));
   });
 
@@ -142,7 +153,7 @@ describe('API generation', () => {
     .then((exists) => assert.isTrue(exists))
     .then(() => fs.readJson(modelFile))
     .then((data) => {
-      assert.typeOf(data, 'array');
+      assertValidAmfModel(data);
     }));
 
     it('Generates data model for compact model', () => generator(configFile, opts)
@@ -150,7 +161,7 @@ describe('API generation', () => {
     .then((exists) => assert.isTrue(exists))
     .then(() => fs.readJson(compactModelFile))
     .then((data) => {
-      assert.typeOf(data, 'array');
+      assertValidAmfModel(data);
     }));
   });
 
@@ -168,7 +179,7 @@ describe('API generation', () => {
     .then((exists) => assert.isTrue(exists))
     .then(() => fs.readJson(modelFile))
     .then((data) => {
-      assert.typeOf(data, 'array');
+      assertValidAmfModel(data);
     }));
 
     it('Generates flattened data model for compact model', () => generator(configFile)
@@ -176,7 +187,7 @@ describe('API generation', () => {
     .then((exists) => assert.isTrue(exists))
     .then(() => fs.readJson(compactModelFile))
     .then((data) => {
-      assert.typeOf(data, 'array');
+      assertValidAmfModel(data);
     }));
 
     it('Generates flattened data model for regular model', () => generator(configFile)
@@ -187,7 +198,7 @@ describe('API generation', () => {
       const graph = data['@graph'];
       assert.isDefined(graph);
       const ctx = data['@context'];
-      assert.isUndefined(ctx);
+      assert.isDefined(ctx, '@context should exist in AMF v5');
     }));
 
     it('Generates flattened data model for compact model', () => generator(configFile)
@@ -217,9 +228,9 @@ describe('API generation', () => {
     .then((exists) => assert.isTrue(exists))
     .then(() => fs.readJson(modelFile))
     .then((data) => {
-      assert.typeOf(data, 'array');
-      const ctx = data[0]['@context'];
-      assert.isUndefined(ctx);
+      assertValidAmfModel(data);
+      const ctx = data['@context'];
+      assert.isDefined(ctx, '@context should exist in AMF v5');
     }));
 
     it('Generates data model for compact model', () => generator(configFile, {
@@ -229,8 +240,8 @@ describe('API generation', () => {
     .then((exists) => assert.isTrue(exists))
     .then(() => fs.readJson(compactModelFile))
     .then((data) => {
-      assert.typeOf(data, 'array');
-      const ctx = data[0]['@context'];
+      assertValidAmfModel(data);
+      const ctx = data['@context'];
       assert.typeOf(ctx, 'object');
     }));
   });
@@ -258,7 +269,7 @@ describe('API generation', () => {
       const exists = await fs.pathExists(modelFile);
       assert.isTrue(exists, 'model file exists');
       const data = await fs.readJson(modelFile);
-      assert.typeOf(data, 'array');
+      assertValidAmfModel(data);
     });
 
     it('Generates data model for compact model', async () => {
@@ -267,7 +278,7 @@ describe('API generation', () => {
       const exists = await fs.pathExists(compactModelFile);
       assert.isTrue(exists, 'model file exists');
       const data = await fs.readJson(compactModelFile);
-      assert.typeOf(data, 'array');
+      assertValidAmfModel(data);
     });
   });
 
@@ -293,7 +304,7 @@ describe('API generation', () => {
       const exists = await fs.pathExists(modelFile);
       assert.isTrue(exists, 'model file exists');
       const data = await fs.readJson(modelFile);
-      assert.typeOf(data, 'array');
+      assertValidAmfModel(data);
     });
   });
 });
