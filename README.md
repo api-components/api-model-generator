@@ -21,13 +21,13 @@ If the value is an array then first element must be API format and second is API
 `ApisList.dest` ⇒ `String` - path where output generated models. Default to `demo/`.
 `ApisList.<path>` ⇒ `String`, `Array`, `ApiDefinition` - a definition of an API to process. Key is a path to the API main file. The value depending on a type has different meaning.
 
-`String` value represents API type. Can be `RAML 0.8`, `RAML 1.0`, `OAS 2.0`, or `OAS 3.0`. It generates api model for `application/yaml` media type and for the `editing` resolution pipeline.
+`String` value represents API type. Can be `RAML 0.8`, `RAML 1.0`, `OAS 2.0`, `OAS 3.0`, `ASYNC 2.0`, or `GRPC`. It generates api model for `application/yaml` media type and for the `editing` resolution pipeline.
 
 `Array` value is deprecated. Please don't use it.
 
 `ApiDefinition` ⇒ `Object`
-`ApiDefinition.type` ⇒ `String`. API type to process. Can be `RAML 0.8`, `RAML 1.0`, `OAS 2.0`, or `OAS 3.0`.
-`ApiDefinition.mime` ⇒ `String`. API media type. Default to `application/yaml`.
+`ApiDefinition.type` ⇒ `String`. API type to process. Can be `RAML 0.8`, `RAML 1.0`, `OAS 2.0`, `OAS 3.0`, `ASYNC 2.0`, or `GRPC`.
+`ApiDefinition.mime` ⇒ `String`. API media type. Default to `application/yaml`. For GRPC use `application/x-protobuf`.
 `ApiDefinition.resolution` ⇒ `String`. AMF resolution pipeline. Default to `editing` which is the original resolution pipeline for API Console. Future releases of AMF can support different options.
 
 

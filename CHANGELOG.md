@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## 0.3.0 (2026-04-07)
+
+### Features
+
+* **amf**: upgrade amf-client-js from 4.7.8 to 5.10.2
+* **grpc**: add support for gRPC/Protobuf API parsing
+* **api**: migrate to AMF v5 API (RAMLConfiguration, OASConfiguration, GRPCConfiguration)
+
+### Breaking Changes
+
+* Requires amf-client-js ^5.10.2
+* API method signatures changed to use AMF v5 configuration objects
+
 ### 0.2.5 (2020-01-22)
 
 
