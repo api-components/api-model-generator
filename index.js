@@ -46,16 +46,20 @@ function getConfiguration(type) {
  * @param {string} destPath
  * @param {string} resolution
  * @param {boolean} flattened
+ * @param {boolean} sourceMaps
  * @return {Promise<void>}
  */
-async function processFile(sourceFile, file, type, destPath, resolution, flattened) {
+async function processFile(sourceFile, file, type, destPath, resolution, flattened, sourceMaps) {
   let dest = `${file.substr(0, file.lastIndexOf('.')) }.json`;
   if (dest.indexOf('/') !== -1) {
     dest = dest.substr(dest.lastIndexOf('/'));
   }
 
   // Setup render options
-  let renderOpts = new RenderOptions().withSourceMaps().withCompactUris();
+  let renderOpts = new RenderOptions().withCompactUris();
+  if (sourceMaps) {
+    renderOpts = renderOpts.withSourceMaps();
+  }
   if (flattened) {
     renderOpts = renderOpts.withCompactedEmission();
   }
@@ -127,9 +131,9 @@ async function parseFile(file, cnf, opts) {
   if (!dest.endsWith('/')) {
     dest += '/';
   }
-  const { type, mime='application/yaml', resolution='editing', flattened = false } = normalizeOptions(cnf);
+  const { type, mime='application/yaml', resolution='editing', flattened = false, sourceMaps = true } = normalizeOptions(cnf);
   const sourceFile = `file://${src}${file}`;
-  return processFile(sourceFile, file, type, dest, resolution, flattened);
+  return processFile(sourceFile, file, type, dest, resolution, flattened, sourceMaps);
 }
 
 /**
