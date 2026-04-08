@@ -195,10 +195,7 @@ describe('API generation', () => {
     .then((exists) => assert.isTrue(exists))
     .then(() => fs.readJson(flattenedModelFile))
     .then((data) => {
-      const graph = data['@graph'];
-      assert.isDefined(graph);
-      const ctx = data['@context'];
-      assert.isDefined(ctx, '@context should exist in AMF v5');
+      assertValidAmfModel(data);
     }));
 
     it('Generates flattened data model for compact model', () => generator(configFile)
@@ -229,8 +226,6 @@ describe('API generation', () => {
     .then(() => fs.readJson(modelFile))
     .then((data) => {
       assertValidAmfModel(data);
-      const ctx = data['@context'];
-      assert.isDefined(ctx, '@context should exist in AMF v5');
     }));
 
     it('Generates data model for compact model', () => generator(configFile, {
@@ -324,9 +319,9 @@ describe('API generation', () => {
       assert.isTrue(exists, 'model file exists');
       const data = await fs.readJson(modelFile);
       assertValidAmfModel(data);
-      // Verify it's a gRPC/WebAPI model
+      // Verify it's a gRPC/WebAPI model (type may be compact or full URI)
       const graph = data['@graph'];
-      const webApi = graph.find(node => node['@type'] && node['@type'].includes('apiContract:WebAPI'));
+      const webApi = graph.find(node => node['@type'] && node['@type'].some(t => t.includes('WebAPI')));
       assert.isDefined(webApi, 'Should contain WebAPI node');
     });
   });
