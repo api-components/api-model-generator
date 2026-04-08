@@ -40,6 +40,10 @@ function getConfiguration(type) {
 /**
  * Generates json/ld file from parsed document using AMF v5 API.
  *
+ * Produces two output files:
+ *   - `<name>.json`         — full model, expanded URIs, source maps controlled by `sourceMaps`
+ *   - `<name>-compact.json` — compact URIs, never includes source maps (optimized for display)
+ *
  * @param {string} sourceFile
  * @param {string} file
  * @param {string} type
@@ -55,21 +59,9 @@ async function processFile(sourceFile, file, type, destPath, resolution, flatten
     dest = dest.substr(dest.lastIndexOf('/'));
   }
 
-  // Setup render options
-  let renderOpts = new RenderOptions().withCompactUris();
-  if (sourceMaps) {
-    renderOpts = renderOpts.withSourceMaps();
-  }
-  if (flattened) {
-    renderOpts = renderOpts.withCompactedEmission();
-  }
-
-  // Get configuration for API type
-  const apiConfiguration = getConfiguration(type).withRenderOptions(renderOpts);
-  const client = apiConfiguration.baseUnitClient();
-
-  // Parse the file
-  const parseResult = await client.parse(sourceFile);
+  // Parse and transform using a base client (render options don't affect parsing)
+  const parseClient = getConfiguration(type).baseUnitClient();
+  const parseResult = await parseClient.parse(sourceFile);
 
   if (!parseResult.conforms) {
     /* eslint-disable-next-line no-console */
@@ -77,23 +69,41 @@ async function processFile(sourceFile, file, type, destPath, resolution, flatten
     console.log(parseResult.toString());
   }
 
-  // Transform using resolution pipeline
   const pipelineId = resolution === 'editing' ? PipelineId.Editing : PipelineId.Default;
-  const transformed = client.transform(parseResult.baseUnit, pipelineId);
+  const transformed = parseClient.transform(parseResult.baseUnit, pipelineId);
 
-  // Render to JSON-LD
   const fullFile = path.join(destPath, dest);
   const compactDest = dest.replace('.json', '-compact.json');
   const compactFile = path.join(destPath, compactDest);
 
-  // Generate full model (same as compact in v5 with withCompactUris)
-  const modelData = await client.render(transformed.baseUnit, 'application/ld+json');
+  // Full model: expanded URIs, source maps controlled by option (for editing tooling)
+  let fullRenderOpts = new RenderOptions();
+  if (sourceMaps) {
+    fullRenderOpts = fullRenderOpts.withSourceMaps();
+  }
+  if (flattened) {
+    fullRenderOpts = fullRenderOpts.withCompactedEmission();
+  }
+  const fullData = await getConfiguration(type)
+    .withRenderOptions(fullRenderOpts)
+    .baseUnitClient()
+    .render(transformed.baseUnit, 'application/ld+json');
 
   await fs.ensureFile(fullFile);
-  await fs.writeFile(fullFile, modelData, 'utf8');
+  await fs.writeFile(fullFile, fullData, 'utf8');
+
+  // Compact model: compact URIs, no source maps (optimized for display/browsing)
+  let compactRenderOpts = new RenderOptions().withCompactUris();
+  if (flattened) {
+    compactRenderOpts = compactRenderOpts.withCompactedEmission();
+  }
+  const compactData = await getConfiguration(type)
+    .withRenderOptions(compactRenderOpts)
+    .baseUnitClient()
+    .render(transformed.baseUnit, 'application/ld+json');
 
   await fs.ensureFile(compactFile);
-  await fs.writeFile(compactFile, modelData, 'utf8');
+  await fs.writeFile(compactFile, compactData, 'utf8');
 }
 
 /**

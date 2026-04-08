@@ -30,7 +30,16 @@ If the value is an array then first element must be API format and second is API
 `ApiDefinition.mime` ⇒ `String`. API media type. Default to `application/yaml`. For GRPC use `application/x-protobuf`.
 `ApiDefinition.resolution` ⇒ `String`. AMF resolution pipeline. Default to `editing` which is the original resolution pipeline for API Console. Future releases of AMF can support different options.
 `ApiDefinition.flattened` ⇒ `Boolean`. When `true`, generates a compact JSON-LD model using `@graph` instead of an expanded array. Recommended for large APIs. Default to `false`.
-`ApiDefinition.sourceMaps` ⇒ `Boolean`. When `false`, omits AMF source map nodes from the generated model. Source maps are only needed for editing tooling (e.g. API designers). Disabling them can reduce model size by up to 80% for large APIs like gRPC. Default to `true`.
+`ApiDefinition.sourceMaps` ⇒ `Boolean`. Controls source maps in the **full** model (`<name>.json`) only. When `false`, source map nodes are omitted — useful when no editing tooling will consume this API. The compact model (`<name>-compact.json`) never includes source maps. Default to `true`.
+
+### Output files
+
+Each API produces two files:
+
+| File | URIs | Source maps | Intended consumer |
+|------|------|-------------|-------------------|
+| `<name>.json` | Expanded (`http://a.ml/...`) | Yes (controlled by `sourceMaps`) | Editing tools, validators |
+| `<name>-compact.json` | Compact (`apiContract:WebAPI`) | Never | API Console, display/browsing |
 
 
 ### Example apis.json
