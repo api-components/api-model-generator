@@ -4,7 +4,7 @@
   "description": "AMF model generator for API components",
   "main": "index.js",
   "scripts": {
-    "test": "mocha 'test/*.test.js' --reporter spec"
+    "test": "mocha \"test/*.test.js\" --reporter spec"
   },
   "license": "Apache-2.0",
   "author": {
