@@ -29,6 +29,17 @@ If the value is an array then first element must be API format and second is API
 `ApiDefinition.type` ⇒ `String`. API type to process. Can be `RAML 0.8`, `RAML 1.0`, `OAS 2.0`, `OAS 3.0`, `ASYNC 2.0`, or `GRPC`.
 `ApiDefinition.mime` ⇒ `String`. API media type. Default to `application/yaml`. For GRPC use `application/x-protobuf`.
 `ApiDefinition.resolution` ⇒ `String`. AMF resolution pipeline. Default to `editing` which is the original resolution pipeline for API Console. Future releases of AMF can support different options.
+`ApiDefinition.flattened` ⇒ `Boolean`. When `true`, generates a compact JSON-LD model using `@graph` instead of an expanded array. Recommended for large APIs. Default to `false`.
+`ApiDefinition.sourceMaps` ⇒ `Boolean`. Controls source maps in the **full** model (`<name>.json`) only. When `false`, source map nodes are omitted — useful when no editing tooling will consume this API. The compact model (`<name>-compact.json`) never includes source maps. Default to `true`.
+
+### Output files
+
+Each API produces two files:
+
+| File | URIs | Source maps | Intended consumer |
+|------|------|-------------|-------------------|
+| `<name>.json` | Expanded (`http://a.ml/...`) | Yes (controlled by `sourceMaps`) | Editing tools, validators |
+| `<name>-compact.json` | Compact (`apiContract:WebAPI`) | Never | API Console, display/browsing |
 
 
 ### Example apis.json
@@ -44,6 +55,12 @@ If the value is an array then first element must be API format and second is API
     "type": "RAML 1.0",
     "mime": "application/raml",
     "resolution": "editing"
+  },
+  "grpc/service.proto": {
+    "type": "GRPC",
+    "mime": "application/protobuf",
+    "flattened": true,
+    "sourceMaps": false
   }
 }
 ```

@@ -12,6 +12,50 @@ const {
   PipelineId,
 } = amf;
 
+/**
+ * Strips AMF source-map nodes and inline source-map properties from a
+ * serialised JSON-LD @graph string.
+ *
+ * AMF v5 only includes declared types (doc:declares) in the @graph when
+ * withSourceMaps() is used.  For the compact model we want declares without
+ * the source-map noise, so we generate with source maps and then strip them.
+ *
+ * @param {string} data Raw JSON-LD string
+ * @returns {string} Stripped JSON-LD string
+ */
+function stripSourceMaps(data) {
+  const obj = JSON.parse(data);
+  const graph = obj['@graph'];
+  if (!Array.isArray(graph)) return data;
+
+  const filtered = graph.filter((node) => {
+    const rawTypes = node['@type'];
+    const joined = Array.isArray(rawTypes) ? rawTypes.join(',') : String(rawTypes || '');
+    if (joined.includes('SourceMap') || joined.includes('source-maps')) return false;
+    const id = node['@id'];
+    if (typeof id === 'string' && id.includes('source-map')) return false;
+    return true;
+  });
+
+  const sourceMapProps = [
+    'http://a.ml/vocabularies/document-source-maps#sources',
+    'http://a.ml/vocabularies/document-source-maps#lexical',
+    'sourcemaps:sources',
+    'sourcemaps:lexical',
+    'sourcemaps:synthesized-field',
+    'sourcemaps:grpc-raw-proto',
+    'sourcemaps:element',
+    'sourcemaps:value',
+  ];
+  for (const node of filtered) {
+    for (const prop of sourceMapProps) {
+      delete node[prop];
+    }
+  }
+
+  return JSON.stringify({ ...obj, '@graph': filtered });
+}
+
 /** @typedef {import('./types').ApiConfiguration} ApiConfiguration */
 /** @typedef {import('./types').FilePrepareResult} FilePrepareResult */
 /** @typedef {import('./types').ApiGenerationOptions} ApiGenerationOptions */
@@ -40,32 +84,31 @@ function getConfiguration(type) {
 /**
  * Generates json/ld file from parsed document using AMF v5 API.
  *
+ * Produces two output files:
+ *   - `<name>.json`         — full model, expanded URIs, source maps controlled by `sourceMaps`
+ *   - `<name>-compact.json` — compact URIs, never includes source maps (optimized for display)
+ *
  * @param {string} sourceFile
  * @param {string} file
  * @param {string} type
  * @param {string} destPath
  * @param {string} resolution
  * @param {boolean} flattened
+ * @param {boolean} sourceMaps
  * @return {Promise<void>}
  */
-async function processFile(sourceFile, file, type, destPath, resolution, flattened) {
+async function processFile(sourceFile, file, type, destPath, resolution, flattened, sourceMaps) {
   let dest = `${file.substr(0, file.lastIndexOf('.')) }.json`;
   if (dest.indexOf('/') !== -1) {
     dest = dest.substr(dest.lastIndexOf('/'));
   }
 
-  // Setup render options
-  let renderOpts = new RenderOptions().withSourceMaps().withCompactUris();
-  if (flattened) {
-    renderOpts = renderOpts.withCompactedEmission();
-  }
-
-  // Get configuration for API type
-  const apiConfiguration = getConfiguration(type).withRenderOptions(renderOpts);
-  const client = apiConfiguration.baseUnitClient();
-
-  // Parse the file
-  const parseResult = await client.parse(sourceFile);
+  // Parse using a base client (render options don't affect parsing).
+  // AMF v5 mutates the baseUnit during transform/render so we must parse twice —
+  // once for the full model and once for the compact model — to get independent
+  // base units.
+  const parseClient = getConfiguration(type).baseUnitClient();
+  const parseResult = await parseClient.parse(sourceFile);
 
   if (!parseResult.conforms) {
     /* eslint-disable-next-line no-console */
@@ -73,23 +116,53 @@ async function processFile(sourceFile, file, type, destPath, resolution, flatten
     console.log(parseResult.toString());
   }
 
-  // Transform using resolution pipeline
   const pipelineId = resolution === 'editing' ? PipelineId.Editing : PipelineId.Default;
-  const transformed = client.transform(parseResult.baseUnit, pipelineId);
+  const transformed = parseClient.transform(parseResult.baseUnit, pipelineId);
 
-  // Render to JSON-LD
+  // Fresh parse for compact model (avoids base-unit mutation by the full render above)
+  const parseClientForCompact = getConfiguration(type).baseUnitClient();
+  const parseResultForCompact = await parseClientForCompact.parse(sourceFile);
+  const transformedForCompact = parseClientForCompact.transform(parseResultForCompact.baseUnit, pipelineId);
+
   const fullFile = path.join(destPath, dest);
   const compactDest = dest.replace('.json', '-compact.json');
   const compactFile = path.join(destPath, compactDest);
 
-  // Generate full model (same as compact in v5 with withCompactUris)
-  const modelData = await client.render(transformed.baseUnit, 'application/ld+json');
+  // Full model: expanded URIs, source maps controlled by option (for editing tooling)
+  // withoutCompactedEmission() is required: AMF v5 defaults to @graph (compacted emission),
+  // but consumers like amf-loader.ts expect the old array format [{"@id": "amf://id", ...}].
+  // Only flattened models intentionally use @graph.
+  let fullRenderOpts = new RenderOptions().withoutCompactedEmission();
+  if (sourceMaps) {
+    fullRenderOpts = fullRenderOpts.withSourceMaps();
+  }
+  if (flattened) {
+    fullRenderOpts = fullRenderOpts.withCompactedEmission();
+  }
+  const fullData = await getConfiguration(type)
+    .withRenderOptions(fullRenderOpts)
+    .baseUnitClient()
+    .render(transformed.baseUnit, 'application/ld+json');
 
   await fs.ensureFile(fullFile);
-  await fs.writeFile(fullFile, modelData, 'utf8');
+  await fs.writeFile(fullFile, fullData, 'utf8');
+
+  // Compact model: same as full model but with source maps stripped after rendering.
+  // AMF v5 only includes doc:declares (type definitions) when withSourceMaps() is
+  // active, so we must generate with source maps and remove them in post-processing.
+  // withCompactUris() is omitted: it also drops declared types from the @graph.
+  let compactRenderOpts = new RenderOptions().withSourceMaps().withoutCompactedEmission();
+  if (flattened) {
+    compactRenderOpts = compactRenderOpts.withCompactedEmission();
+  }
+  const compactRaw = await getConfiguration(type)
+    .withRenderOptions(compactRenderOpts)
+    .baseUnitClient()
+    .render(transformedForCompact.baseUnit, 'application/ld+json');
+  const compactData = flattened ? compactRaw : stripSourceMaps(compactRaw);
 
   await fs.ensureFile(compactFile);
-  await fs.writeFile(compactFile, modelData, 'utf8');
+  await fs.writeFile(compactFile, compactData, 'utf8');
 }
 
 /**
@@ -127,9 +200,9 @@ async function parseFile(file, cnf, opts) {
   if (!dest.endsWith('/')) {
     dest += '/';
   }
-  const { type, mime='application/yaml', resolution='editing', flattened = false } = normalizeOptions(cnf);
+  const { type, mime='application/yaml', resolution='editing', flattened = false, sourceMaps = true } = normalizeOptions(cnf);
   const sourceFile = `file://${src}${file}`;
-  return processFile(sourceFile, file, type, dest, resolution, flattened);
+  return processFile(sourceFile, file, type, dest, resolution, flattened, sourceMaps);
 }
 
 /**

@@ -20,6 +20,13 @@ export declare interface ApiConfiguration {
    * @default false
    */
   flattened?: boolean;
+  /**
+   * Whether to include AMF source maps in the generated model.
+   * Disable for large APIs (e.g. gRPC) to reduce model size significantly.
+   * Source maps are only needed for editing tooling, not for browsing/display.
+   * @default true
+   */
+  sourceMaps?: boolean;
 }
 
 export declare interface ApiGenerationOptions {
