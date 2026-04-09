@@ -203,10 +203,7 @@ describe('API generation', () => {
     .then((exists) => assert.isTrue(exists))
     .then(() => fs.readJson(compactFlattenedModelFile))
     .then((data) => {
-      const graph = data['@graph'];
-      assert.isDefined(graph);
-      const ctx = data['@context'];
-      assert.typeOf(ctx, 'object');
+      assertValidAmfModel(data);
     }));
   });
 
@@ -236,8 +233,6 @@ describe('API generation', () => {
     .then(() => fs.readJson(compactModelFile))
     .then((data) => {
       assertValidAmfModel(data);
-      const ctx = data['@context'];
-      assert.typeOf(ctx, 'object');
     }));
   });
 
