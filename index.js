@@ -77,7 +77,10 @@ async function processFile(sourceFile, file, type, destPath, resolution, flatten
   const compactFile = path.join(destPath, compactDest);
 
   // Full model: expanded URIs, source maps controlled by option (for editing tooling)
-  let fullRenderOpts = new RenderOptions();
+  // withoutCompactedEmission() is required: AMF v5 defaults to @graph (compacted emission),
+  // but consumers like amf-loader.ts expect the old array format [{"@id": "amf://id", ...}].
+  // Only flattened models intentionally use @graph.
+  let fullRenderOpts = new RenderOptions().withoutCompactedEmission();
   if (sourceMaps) {
     fullRenderOpts = fullRenderOpts.withSourceMaps();
   }
@@ -93,7 +96,8 @@ async function processFile(sourceFile, file, type, destPath, resolution, flatten
   await fs.writeFile(fullFile, fullData, 'utf8');
 
   // Compact model: compact URIs, no source maps (optimized for display/browsing)
-  let compactRenderOpts = new RenderOptions().withCompactUris();
+  // Same rationale: withoutCompactedEmission() unless explicitly flattened.
+  let compactRenderOpts = new RenderOptions().withCompactUris().withoutCompactedEmission();
   if (flattened) {
     compactRenderOpts = compactRenderOpts.withCompactedEmission();
   }
